@@ -402,7 +402,7 @@ END SUBROUTINE IgnoredStrings
 SUBROUTINE FillStrings(IniFile)
 !===================================================================================================================================
 ! Read ini file and put each line in a string object. All string objects are connected to a list of string objects starting
-! with "firstString"
+! with "firstString". Gracefully exits if the file does not exist.
 !===================================================================================================================================
 ! MODULES
 USE ISO_VARYING_STRING
@@ -416,6 +416,7 @@ CHARACTER(LEN=*),INTENT(IN),OPTIONAL   :: IniFile                    ! Name of i
 ! OUTPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! LOCAL VARIABLES 
+LOGICAL                                :: IniFileExists
 TYPE(tString),POINTER                  :: Str1=>NULL(),Str2=>NULL()
 CHARACTER(LEN=255)                     :: HelpStr,Str
 CHARACTER(LEN=300)                     :: File
@@ -431,6 +432,14 @@ ELSE
   CALL GETARG(1,File)
   !CALL GET_COMMAND_ARGUMENT(1,File)
 END IF
+
+! Check for existence of file, otherwise we will have a messy crash in the following OPEN call.
+INQUIRE(FILE=File, EXIST=IniFileExists)
+IF(.NOT.IniFileExists) THEN
+  WRITE(*,*) 'Failed to open', TRIM(File), '! Exiting...'
+  CALL EXIT(1)
+ENDIF
+
 WRITE(UNIT_StdOut,*)'| Reading from file "',TRIM(File),'":'
 
 OPEN(UNIT   = 103,        &
