@@ -1,0 +1,5 @@
+Calc/
+share/
+*.mod
+*.o
+src/srcfiles_pp.mk
