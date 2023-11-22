@@ -309,6 +309,7 @@ END IF
 READ(HelpStr,*)GetIntArray
 WRITE(UNIT_stdOut,'(a3,a30,a3,a28,i4,a4,a7,a3)',ADVANCE='NO') ' | ',TRIM(Key),' | ',&
                                                                'Integer array of size (',nIntegers,') | ',TRIM(DefMsg),' | '
+WRITE(UNIT_stdOut,'(A)') 
 DO iInteger=0,nIntegers-1
   IF ((iInteger.GT.0) .AND. (MOD(iInteger,8).EQ.0)) THEN
     WRITE(UNIT_stdOut,*)
@@ -385,14 +386,14 @@ IMPLICIT NONE
 ! LOCAL VARIABLES
 TYPE(tString),POINTER                  :: Str1
 !===================================================================================================================================
-WRITE(UNIT_stdOut,'(132("-"))')
+WRITE(UNIT_stdOut,'(" ", 60("-"))')
 WRITE(UNIT_stdOut,'(A)')" THE FOLLOWING INI-FILE PARAMETERS WERE IGNORED:"
 Str1=>FirstString
 DO WHILE(ASSOCIATED(Str1))
   WRITE(UNIT_stdOut,'(A4,A)')" |- ",TRIM(CHAR(Str1%Str))
   Str1=>Str1%NextStr
 END DO
-WRITE(UNIT_stdOut,'(132("-"))')
+WRITE(UNIT_stdOut,'(" ", 60("-"))')
 
 END SUBROUTINE IgnoredStrings
 

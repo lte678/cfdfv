@@ -76,10 +76,10 @@ DO iBC = 1, nBC
 ! Read additional information
   SELECT CASE(BC%BCType)
   CASE(SLIPWALL)
-    WRITE(*,'(a)') '|      BC Type: Slipwall'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Slipwall ^^^', ' | ', ' | '
   ! Nothing to do
   CASE(INFLOW)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Inflow'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Inflow ^^^', ' | ', ' | '
   ! Density
     BC%pvar(RHO) = GETREAL('rho')
     !WRITE(*,'(a, F10.4)') '        Density: ', BC%pvar(RHO)
@@ -98,7 +98,7 @@ DO iBC = 1, nBC
     BC%pvar(V1) = v * COS(alpha * ACOS(-1.) / 180.)
     BC%pvar(V2) = v * SIN(alpha * ACOS(-1.) / 180.)
   CASE(CHARACTERISTIC)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Characteristic'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Characteristic ^^^', ' | ', ' | '
   ! Density
     BC%pvar(RHO) = GETREAL('rho')
     !WRITE(*,'(a, F10.4)') '        Density: ', BC%pvar(RHO)
@@ -116,19 +116,19 @@ DO iBC = 1, nBC
     BC%pvar(V1) = v * COS(alpha * ACOS(-1.) / 180.)
     BC%pvar(V2) = v * SIN(alpha * ACOS(-1.) / 180.)
   CASE(OUTFLOW)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Outflow'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Outflow ^^^', ' | ', ' | '
   ! Nothing to do
   CASE(PRESSURE_OUT)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Pressure Out'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Pressure Out ^^^', ' | ', ' | '
   ! pressure
     BC%pvar(P) = GETREAL('pressure')
     !WRITE(*,'(a, F10.4)') '        Pressure: ', BC%pvar(P)
   CASE(EXACTSOL)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Exact Function'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Exact Function ^^^', ' | ', ' | '
   ! read exact function
     BC%ExactFunc = GETINT('BCExactFunc')
   CASE(PERIODIC)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Periodic'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Periodic ^^^', ' | ', ' | '
   ! read exact function
     BC%connection(:) = GETREALARRAY('connection',2)
   END SELECT

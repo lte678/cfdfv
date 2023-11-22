@@ -77,6 +77,7 @@ IMPLICIT NONE
 !===================================================================================================================================
 
 ! Initialize Mesh
+WRITE(*,*)
 WRITE(*,*) "-[Mesh]-----------------------------------------------------"
 CALL ReadMesh()
 GridFile =  TRIM(strOutFile) // '_mesh.cgns'
@@ -87,7 +88,6 @@ IF (iVisuProg == CGNS) THEN
     CALL CGNS_WriteMesh()
   END IF
 END IF
-WRITE(*,*) ' ... done.'
 ! Average Element Size
 dxRef = SQRT(1./(totalArea_q*nElems))
 !-----------------------------------------------------------------------------------------------------------------------------------

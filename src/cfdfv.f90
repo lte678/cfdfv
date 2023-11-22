@@ -100,13 +100,11 @@ PROGRAM CFDFV
    WRITE(*,*) '------------------------------------------------------------'
    WRITE(*,*) ' Setting Initial Condition:'
    CALL InitialCondition()
-   WRITE(*,*) ' ...done.'
 !-----------------------------------------------------------------------------------------------------------------------------------
    ! Initialize Ca, Cw and Cp calculation as well as record points
    WRITE(*,*) '------------------------------------------------------------'
    WRITE(*,*) ' Initializing Analyse Module:'
    CALL InitAnalyze()
-   WRITE(*,*) ' ...done.'
 !-----------------------------------------------------------------------------------------------------------------------------------
    ! Print ignored strings
    CALL IgnoredStrings()

@@ -44,6 +44,7 @@ REAL           :: MachNumber, AngleOfAttack,c,v
 INTEGER        :: i
 !===================================================================================================================================
 
+WRITE(*,*)
 WRITE(*,*) "-[Initial Conditions]---------------------------------------"
 icType = GETINT('ICtype')
 SELECT CASE(icType)
