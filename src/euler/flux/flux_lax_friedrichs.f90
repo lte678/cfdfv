@@ -40,15 +40,40 @@ REAL,INTENT(IN)             :: p_l  , p_r
 REAL,INTENT(OUT)            :: flux_side(4)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! LOCAL VARIABLES 
-    
-    !local variable declaration
-    
+REAL                        :: c_l, c_r, e_tot_l, e_tot_r, h_l, h_r
+REAL                        :: lambda_max
+REAL, DIMENSION(4)          :: flux_l, flux_r
+REAL, DIMENSION(4)          :: delta_u
 !===================================================================================================================================
 
 !-----------------------------------------------------------------------------------------------------------------------------------
-   
-   ! Insert your Code here
-   
+c_l = SQRT(gamma*p_l/rho_l)
+c_r = SQRT(gamma*p_r/rho_r)
+e_tot_l = p_l/(gamma-1) + 0.5*rho_l*(v1_l*v1_l+v2_l*v2_l)
+e_tot_r = p_r/(gamma-1) + 0.5*rho_r*(v1_r*v1_r+v2_r*v2_r)
+h_l = (e_tot_l + p_l) / rho_l
+h_r = (e_tot_r + p_r) / rho_r
+
+! Calculate left and right fluxes
+flux_l(1) = rho_l*v1_l
+flux_l(2) = rho_l*v1_l*v1_l + p_l
+flux_l(3) = rho_l*v1_l*v2_l
+flux_l(4) = v1_l*(e_tot_l + p_l)
+
+flux_r(1) = rho_r*v1_r
+flux_r(2) = rho_r*v1_r*v1_r + p_r
+flux_r(3) = rho_r*v1_r*v2_r
+flux_r(4) = v1_r*(e_tot_r + p_r)
+
+! Calculate edge flux
+delta_u(1) = rho_r - rho_l
+delta_u(2) = rho_r*v1_r - rho_l*v1_l
+delta_u(3) = rho_r*v2_r - rho_l*v2_l
+delta_u(4) = e_tot_r - e_tot_l
+
+lambda_max = MAX(ABS(v1_l)+c_l,ABS(v1_r)+c_r)
+
+flux_side(:) = 0.5*(flux_l(:) + flux_r(:)) - 0.5*lambda_max*delta_u
 !-----------------------------------------------------------------------------------------------------------------------------------
 
 END SUBROUTINE flux_lax_friedrichs

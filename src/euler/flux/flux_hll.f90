@@ -72,8 +72,8 @@ h = (rho_r_root*h_r + rho_l_root*h_l) / k1
 c = SQRT((gamma-1)*(h - 0.5*v_sq))
 
 ! Calculate the left and right eigen values
-a_r_plus = DMAX1(0.0, v1_r+c_r, v1+c)
-a_l_minus = DMIN1(0.0, v1_l-c_l, v1-c)
+a_r_plus = MAX(0.0, v1_r+c_r, v1+c)
+a_l_minus = MIN(0.0, v1_l-c_l, v1-c)
 
 ! Calculate left and right fluxes
 flux_l(1) = rho_l*v1_l
