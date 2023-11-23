@@ -44,10 +44,14 @@ REAL,INTENT(OUT)            :: flux_side(4)
 ! LOCAL VARIABLES 
 REAL                        :: c_l,c_r
 REAL                        :: rho, v1, p, v2
+REAL                        :: e, e_tot
 !===================================================================================================================================
 
 ! Compute speed of sound for u_l and u_r
-    ! Insert your Code here
+! There are two possibilities: Use the absolute speed of sound from the magnitude of v_{1,2} or, only use v1.
+! Considering that v2 is tangential to the cell boundary, I do not think it is revelant for the rieman problem, even in c.
+c_l = SQRT(gamma*p_l/rho_l);
+c_r = SQRT(gamma*p_r/rho_r);
 
 ! Compute exact riemann solution at the cell interface
 ! input values:
@@ -61,10 +65,21 @@ CALL exact_riemann(gamma,             &
                    c_l  ,c_r  ,0.0    )
 
 ! Determine v2 at the cell interface
-    ! Insert your Code here
+IF(v1 >= 0) THEN
+    v2 = v2_l
+ELSE
+    v2 = v2_r
+ENDIF
+
+! Compute total energy at cell boundary        
+e = p / ((gamma-1) * rho)
+e_tot = rho*e + 0.5*rho*(v1*v1 + v2*v2)
 
 ! Compute intercell flux 
-    ! Insert your Code here
+flux_side(1) = rho*v1
+flux_side(2) = rho*v1*v1 + p
+flux_side(3) = rho*v1*v2
+flux_side(4) = v1*(e_tot + p)
 !-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE flux_godunov
 
