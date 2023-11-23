@@ -102,8 +102,7 @@ euler/flux/flux_hlle.o: euler/flux/flux_hlle.f90 \
 	globals.o 
 
 euler/flux/flux_hll.o: euler/flux/flux_hll.f90 \
-	euler/equation_vars.o \
-	globals.o 
+	euler/equation_vars.o 
 
 euler/flux/flux_lax_friedrichs.o: euler/flux/flux_lax_friedrichs.f90 \
 	euler/equation_vars.o 
