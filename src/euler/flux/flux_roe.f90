@@ -28,7 +28,7 @@ SUBROUTINE flux_roe( rho_l, rho_r, &
 ! Calculation of Roe flux
 !===================================================================================================================================
 ! MODULES
-USE MOD_Equation_Vars, ONLY: gamma,gamma1q
+USE MOD_Equation_Vars, ONLY: gamma
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE

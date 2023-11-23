@@ -28,7 +28,7 @@ SUBROUTINE flux_hll( rho_l, rho_r, &
 ! Computation of the HLL flux
 !===================================================================================================================================
 ! MODULES
-USE MOD_Equation_Vars, ONLY: gamma,gamma1,gamma1q
+USE MOD_Equation_Vars, ONLY: gamma
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE

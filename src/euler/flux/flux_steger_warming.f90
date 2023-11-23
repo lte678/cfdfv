@@ -26,7 +26,7 @@ SUBROUTINE flux_steger_warming( rho_l, rho_r, &
 ! Steger Warming
 !===================================================================================================================================
 ! MODULES
-USE MOD_Equation_Vars, ONLY: gamma,gamma1,gamma1q
+USE MOD_Equation_Vars, ONLY: gamma
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE
@@ -41,15 +41,41 @@ REAL,INTENT(IN)             :: p_l  , p_r
 REAL,INTENT(OUT)            :: flux_side(4)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! LOCAL VARIABLES 
-    
-    !local variable declaration
-    
+REAL                        :: a1_l, a2_l, a3_l, a4_l, a1_r, a2_r, a3_r, a4_r
+REAL, DIMENSION(4)          :: flux_l, flux_r
+REAL                        :: c_l, c_r
+REAL                        :: k1
 !===================================================================================================================================
 
 !-----------------------------------------------------------------------------------------------------------------------------------
-   
-   ! Insert your Code here
-   
+c_l = SQRT(gamma*p_l/rho_l)
+c_r = SQRT(gamma*p_r/rho_r)
+
+! Calculate the sign-limited propagation speeds
+a1_l = MAX(0.0, v1_l-c_l)
+a2_l = MAX(0.0, v1_l)
+a3_l = a2_l
+a4_l = MAX(0.0, v1_l+c_l)
+
+a1_r = MIN(0.0, v1_r-c_r)
+a2_r = MIN(0.0, v1_r)
+a3_r = a2_r
+a4_r = MIN(0.0, v1_r+c_r)
+
+! flux_l is equal to flux_+ because it travels to the right, if at all
+k1 = 1/(2*gamma)
+
+flux_l(1) = rho_l*k1*(2*(gamma-1)*a2_l + a1_l + a4_l)
+flux_l(2) = flux_l(1)*v1_l + (a4_l-a1_l)*rho_l*c_l*k1
+flux_l(3) = flux_l(1)*v2_l
+flux_l(4) = flux_l(1)*0.5*(v1_l*v1_l+v2_l*v2_l) + (a4_l-a1_l)*rho_l*c_l*v1_l*k1 + (a4_l+a1_l)*rho_l*c_l*c_l*k1/(gamma-1)
+
+flux_r(1) = rho_r*k1*(2*(gamma-1)*a2_r + a1_r + a4_r)
+flux_r(2) = flux_r(1)*v1_r + (a4_r-a1_r)*rho_r*c_r*k1
+flux_r(3) = flux_r(1)*v2_r
+flux_r(4) = flux_r(1)*0.5*(v1_r*v1_r+v2_r*v2_r) + (a4_r-a1_r)*rho_r*c_r*v1_r*k1 + (a4_r+a1_r)*rho_r*c_r*c_r*k1/(gamma-1)
+
+flux_side(:) = flux_l(:) + flux_r(:)
 !-----------------------------------------------------------------------------------------------------------------------------------
 
 END SUBROUTINE flux_steger_warming
