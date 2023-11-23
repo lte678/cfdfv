@@ -34,7 +34,7 @@ SUBROUTINE FluxCalculation()
 ! Finishes with backrotation
 !===================================================================================================================================
 ! MODULES
-USE MOD_Globals
+USE MOD_Globals  ,ONLY:RHO,V1,V2,M1,M2,P,E,NVAR
 USE MOD_Mesh_Vars,ONLY:tSide
 USE MOD_Mesh_Vars,ONLY:nSides,Sides
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -55,10 +55,44 @@ TYPE(tSide), POINTER    :: aSide
 !$omp parallel do private(aSide,pvar_l,pvar_r,pvar,flux_local)
 
 ! Loop over all sides
-
-  ! Insert your Code here
-
-
+DO iSide = 1, nSides
+  aSide => Sides(iSide)%Side
+! Extract left state 
+  pvar(:) = aSide%pvar(:)
+! rotate it into normal direction
+  pvar_l(RHO) = pvar(RHO)
+  pvar_l(V1)  = aSide%n(1) * pvar(V1) + aSide%n(2) * pvar(V2)
+  pvar_l(V2)  = - aSide%n(2) * pvar(V1) + aSide%n(1) * pvar(V2)
+  pvar_l(P)   = pvar(P)
+! Extract right state:
+  pvar(:) = aSide%connection%pvar(:)
+! rotate state into normal direction
+  pvar_r(RHO) = pvar(RHO)
+  pvar_r(V1)  = aSide%n(1) * pvar(V1) + aSide%n(2) * pvar(V2)
+  pvar_r(V2)  = - aSide%n(2) * pvar(V1) + aSide%n(1) * pvar(V2)
+  pvar_r(P)   = pvar(P)
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Flux calculation
+  CALL ConvectiveFlux(pvar_l(RHO), pvar_r(RHO), &
+                      pvar_l(V1),  pvar_r(V1),  &
+                      pvar_l(V2),  pvar_r(V2),  &
+                      pvar_l(P),   pvar_r(P),   &
+                      flux_local                )
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Rotate Flux into global coordinate system and update residual
+  aSide%flux(RHO) = flux_local(RHO)
+  aSide%flux(M1)  = aSide%n(1) *flux_local(M1) - &
+                    aSide%n(2) *flux_local(M2)
+  aSide%flux(M2)  = aSide%n(2) *flux_local(M1) + &
+                    aSide%n(1) *flux_local(M2)
+  aSide%flux(E)   = flux_local(E)
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Integrate flux over edge using the midpoint rule
+  aSide%flux = aSide%flux * aSide%length
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Set flux of connection cell
+  aSide%connection%flux = - aSide%flux
+END DO
 !$omp end parallel do
 !-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE FluxCalculation
