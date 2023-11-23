@@ -76,10 +76,10 @@ DO iBC = 1, nBC
 ! Read additional information
   SELECT CASE(BC%BCType)
   CASE(SLIPWALL)
-    WRITE(*,'(a)') '|      BC Type: Slipwall'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Slipwall ^^^', ' | ', ' | '
   ! Nothing to do
   CASE(INFLOW)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Inflow'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Inflow ^^^', ' | ', ' | '
   ! Density
     BC%pvar(RHO) = GETREAL('rho')
     !WRITE(*,'(a, F10.4)') '        Density: ', BC%pvar(RHO)
@@ -98,7 +98,7 @@ DO iBC = 1, nBC
     BC%pvar(V1) = v * COS(alpha * ACOS(-1.) / 180.)
     BC%pvar(V2) = v * SIN(alpha * ACOS(-1.) / 180.)
   CASE(CHARACTERISTIC)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Characteristic'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Characteristic ^^^', ' | ', ' | '
   ! Density
     BC%pvar(RHO) = GETREAL('rho')
     !WRITE(*,'(a, F10.4)') '        Density: ', BC%pvar(RHO)
@@ -116,19 +116,19 @@ DO iBC = 1, nBC
     BC%pvar(V1) = v * COS(alpha * ACOS(-1.) / 180.)
     BC%pvar(V2) = v * SIN(alpha * ACOS(-1.) / 180.)
   CASE(OUTFLOW)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Outflow'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Outflow ^^^', ' | ', ' | '
   ! Nothing to do
   CASE(PRESSURE_OUT)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Pressure Out'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Pressure Out ^^^', ' | ', ' | '
   ! pressure
     BC%pvar(P) = GETREAL('pressure')
     !WRITE(*,'(a, F10.4)') '        Pressure: ', BC%pvar(P)
   CASE(EXACTSOL)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Exact Function'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Exact Function ^^^', ' | ', ' | '
   ! read exact function
     BC%ExactFunc = GETINT('BCExactFunc')
   CASE(PERIODIC)
-    WRITE(*,'(a, I2, a)') '|      BC Type: Periodic'
+    WRITE(*,'(a3,a33,a33,a3,a10)') ' | ', ' | ', 'Periodic ^^^', ' | ', ' | '
   ! read exact function
     BC%connection(:) = GETREALARRAY('connection',2)
   END SELECT
@@ -160,10 +160,17 @@ INTEGER                     :: iSide
 !===================================================================================================================================
 !$omp parallel do private(gSide,gElem,aSide,aElem)
 
-! (Loop over all BC Sides)
-
-       ! Insert your Code here
-
+DO iSide = 1, nBCSides 
+  gSide => BCSides(iSide)%Side
+  gElem => gSide%Elem
+  aSide => gSide%Connection
+  aElem => aSide%Elem
+  CALL Boundary(gSide,                  &
+                time,                   &
+                aSide%pvar,             &
+                gSide%pvar,             &
+                aSide%GP + aElem%Bary   )
+END DO
 
 !$omp end parallel do
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -191,13 +198,19 @@ TYPE(tElem), POINTER        :: aElem, gElem
 TYPE(tSide), POINTER        :: aSide, gSide
 INTEGER                     :: iSide
 !===================================================================================================================================
+
 !$omp parallel do private(gSide,gElem,aSide,aElem)
-
-! (Loop over all BC Sides)
-
-       ! Insert your Code here
-
-
+DO iSide = 1, nBCSides 
+  gSide => BCSides(iSide)%Side
+  gElem => gSide%Elem
+  aSide => gSide%Connection
+  aElem => aSide%Elem
+  CALL Boundary(gSide,                  &
+                time,                   &
+                aElem%pvar,             &
+                gElem%pvar,             &
+                gElem%Bary              )
+END DO
 !$omp end parallel do
 !---------------------------------------------------------------------------!
 END SUBROUTINE
@@ -243,15 +256,26 @@ SELECT CASE(aSide%BC%BCType)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Slipwall Boundary
 CASE(SLIPWALL)
-       ! Insert your Code here
+  ! Rotate velocities into the edge's local coordinate system
+  V1_loc(1)  =  n(1) * int_pvar(V1) + n(2) * int_pvar(V2)
+  V2_loc(1)  = -n(2) * int_pvar(V1) + n(1) * int_pvar(V2) 
+  ! Mirror V1 and extrapolate V2:
+  V1_loc(2) = - V1_loc(1)
+  V2_loc(2) =   V2_loc(1)
+  ! Backrotation into global coordinate system
+  ghost_pvar(V1) = n(1) * V1_loc(2) - n(2) * V2_loc(2)
+  ghost_pvar(V2) = n(2) * V1_loc(2) + n(1) * V2_loc(2)
+  ! Scalar and derived conservative variables
+  ghost_pvar(RHO) = int_pvar(RHO)
+  ghost_pvar(P)   = int_pvar(P)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Supersonic Inflow Boundary
 CASE(INFLOW)
-       ! Insert your Code here
+  ghost_pvar(RHO:P) = aSide%BC%pvar(RHO:P)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Supersonic Outflow Boundary
 CASE(OUTFLOW)
-       ! Insert your Code here
+  ghost_pvar(:) = int_pvar(:)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Pressure Outflow 
 CASE(PRESSURE_OUT)
