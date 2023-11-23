@@ -47,7 +47,8 @@ REAL                        :: rho, v1, p, v2
 !===================================================================================================================================
 
 ! Compute speed of sound for u_l and u_r
-    ! Insert your Code here
+c_l = SQRT(gamma*p_l/rho_l)
+c_r = SQRT(gamma*p_r/rho_r)
 
 ! Compute exact riemann solution at the cell interface
 ! input values:
@@ -61,10 +62,17 @@ CALL exact_riemann(gamma,             &
                    c_l  ,c_r  ,0.0    )
 
 ! Determine v2 at the cell interface
-    ! Insert your Code here
+IF(v1.GE.0.0) THEN
+   v2 = v2_l
+ELSE
+   v2 = v2_r
+ENDIF
 
 ! Compute intercell flux 
-    ! Insert your Code here
+flux_side(1) = rho*v1
+flux_side(2) = rho*v1*v1 + p
+flux_side(3) = rho*v1*v2
+flux_side(4) = v1*(gamma/(gamma-1.0)*p+0.5*rho*(v1*v1+v2*v2))
 !-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE flux_godunov
 
