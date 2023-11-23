@@ -55,9 +55,38 @@ TYPE(tSide), POINTER    :: aSide
 !$omp parallel do private(aSide,pvar_l,pvar_r,pvar,flux_local)
 
 ! Loop over all sides
+DO iSide = 1, nSides
+  aSide => Sides(iSide)%Side
+  ! Perform transformation left side
+  pvar(:) = aSide%pvar(:)
+  pvar_l(1) = pvar(1)
+  pvar_l(2) =  aSide%n(1)*pvar(2) + aSide%n(2)*pvar(3)
+  pvar_l(3) = -aSide%n(2)*pvar(2) + aSide%n(1)*pvar(3)
+  pvar_l(4) = pvar(4)
+  ! Perform transformation right side
+  pvar(:) = aSide%connection%pvar(:)
+  pvar_r(1) = pvar(1)
+  pvar_r(2) =  aSide%n(1)*pvar(2) + aSide%n(2)*pvar(3)
+  pvar_r(3) = -aSide%n(2)*pvar(2) + aSide%n(1)*pvar(3)
+  pvar_r(4) = pvar(4)
 
-  ! Insert your Code here
-
+  ! Calculate the flux
+  CALL ConvectiveFlux(&
+    pvar_l(1), pvar_r(1), &
+    pvar_l(2), pvar_r(2), &
+    pvar_l(3), pvar_r(3), &
+    pvar_l(4), pvar_r(4), &
+    flux_local)
+  
+  ! Scale according to side length
+  flux_local(:) = flux_local(:) * aSide%length
+  ! Transform
+  aSide%flux(1) = flux_local(1)
+  aSide%flux(2) = aSide%n(1)*flux_local(2) - aSide%n(2)*flux_local(3)
+  aSide%flux(3) = aSide%n(2)*flux_local(2) + aSide%n(1)*flux_local(3)
+  aSide%flux(4) = flux_local(4)
+  aSide%connection%flux(:) = -aSide%flux(:)
+ENDDO
 
 !$omp end parallel do
 !-----------------------------------------------------------------------------------------------------------------------------------
