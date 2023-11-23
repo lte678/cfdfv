@@ -1,0 +1,6 @@
+{
+    "fortran.linter.modOutput": "${workspaceFolder}/src",
+    "fortran.linter.includePaths": [
+        "${workspaceFolder}/src/**"
+    ]
+}
