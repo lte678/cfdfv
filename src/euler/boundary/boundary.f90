@@ -160,10 +160,12 @@ INTEGER                     :: iSide
 !===================================================================================================================================
 !$omp parallel do private(gSide,gElem,aSide,aElem)
 
-! (Loop over all BC Sides)
-
-       ! Insert your Code here
-
+DO iSide = 1,nBCSides
+  gSide => BCSides(iSide)%Side  ! Edge of the ghost cell
+  aSide => gSide%connection     ! Edge of the solution cell
+  gElem => gSide%Elem           ! Ghost cell
+  CALL Boundary(gSide, time, aSide%pvar, gSide%pvar, gElem%Bary + gSide%GP)
+ENDDO
 
 !$omp end parallel do
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -193,10 +195,13 @@ INTEGER                     :: iSide
 !===================================================================================================================================
 !$omp parallel do private(gSide,gElem,aSide,aElem)
 
-! (Loop over all BC Sides)
-
-       ! Insert your Code here
-
+DO iSide = 1,nBCSides
+  gSide => BCSides(iSide)%Side  ! Edge of the ghost cell
+  aSide => gSide%connection     ! Edge of the solution cell
+  gElem => gSide%Elem           ! Ghost cell
+  aElem => aSide%Elem           ! Solution cell
+  CALL Boundary(gSide, time, aElem%pvar, gElem%pvar, gElem%Bary)
+ENDDO
 
 !$omp end parallel do
 !---------------------------------------------------------------------------!
@@ -227,7 +232,7 @@ TYPE(tSide),POINTER,INTENT(IN)  :: aSide
 REAL,INTENT(OUT)                :: ghost_pvar(NVAR)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! LOCAL VARIABLES 
-REAL                            :: V1_loc(2), V2_loc(2)
+REAL                            :: v_loc(2)
 REAL                            :: c, v, pres, n(2)
 REAL                            :: int_cvar(NVAR), ghost_cvar(NVAR)
 REAL                            :: int_pvar_loc(NVAR), ghost_pvar_loc(NVAR)
@@ -243,15 +248,22 @@ SELECT CASE(aSide%BC%BCType)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Slipwall Boundary
 CASE(SLIPWALL)
-       ! Insert your Code here
+  ! Mirror the velocity normal to the cell boundary
+  ghost_pvar(2:3) = int_pvar(2:3) - 2*n*DOT_PRODUCT(int_pvar(2:3), n)
+  ! Set the scalar quantities to their original value
+  ghost_pvar(1) = int_pvar(1)
+  ghost_pvar(4) = int_pvar(4)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Supersonic Inflow Boundary
 CASE(INFLOW)
-       ! Insert your Code here
+  ! Use the provided state
+  ghost_pvar(:) = aSide%BC%pvar(:)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Supersonic Outflow Boundary
 CASE(OUTFLOW)
-       ! Insert your Code here
+  ! Reusing the internal state, makes sure that the state is supersonic in all parts of this flow
+  ! (Otherwise the intermediate states could potentially become subsonic!)
+  ghost_pvar(:) = int_pvar(:)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Pressure Outflow 
 CASE(PRESSURE_OUT)
@@ -302,10 +314,10 @@ CASE(CHARACTERISTIC)
 ! Determine the primitive state of the ghost cell
   CALL ConsPrim(ghost_pvar, ghost_cvar)
 ! Rotate the primitive state into the global coordinate system
-  V1_loc(2) = ghost_pvar(V1)
-  V2_loc(2) = ghost_pvar(V2)
-  ghost_pvar(V1) = n(1) * V1_loc(2) - n(2) * V2_loc(2)
-  ghost_pvar(V2) = n(2) * V1_loc(2) + n(1) * V2_loc(2)
+  v_loc(1) = ghost_pvar(V1)
+  v_loc(2) = ghost_pvar(V2)
+  ghost_pvar(V1) = n(1) * v_loc(1) - n(2) * v_loc(2)
+  ghost_pvar(V2) = n(2) * v_loc(1) + n(1) * v_loc(2)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Exact Solution
 CASE(EXACTSOL)
