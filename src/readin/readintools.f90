@@ -406,7 +406,7 @@ SUBROUTINE FillStrings(IniFile)
 !===================================================================================================================================
 ! MODULES
 USE ISO_VARYING_STRING
-USE,INTRINSIC :: ISO_FORTRAN_ENV
+USE,INTRINSIC :: ISO_FORTRAN_ENV, ONLY:IOSTAT_END
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
