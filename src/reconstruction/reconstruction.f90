@@ -49,12 +49,15 @@ INTEGER                 :: iElem, iSide
 
 IF (SpatialOrder == 1) THEN
   !$omp parallel do private(aElem,aSide)
-  
   ! Set side states to be equal to mean value
-
-   ! Insert your Code here
-
-
+  DO iElem = 1, nElems
+    aElem => Elems(iElem)%Elem
+    aSide => aElem%firstSide
+    DO WHILE(ASSOCIATED(aSide))
+      aSide%pvar = aElem%pvar
+      aSide => aSide%nextElemSide
+    END DO
+  END DO
   !$omp end parallel do
 ELSE
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -77,21 +80,36 @@ ELSE
   ! (Matrix-Vector multiplication)
   
   ! Do this side by side using a loop over all sides
-
-       ! Insert your Code here
-
-
+  DO iSide = 1, nSides
+    aSide => Sides(iSide)%Side
+    pDiff = aSide%connection%Elem%pvar(:) - aSide%Elem%pvar(:)
+    aElem => aSide%Elem
+    aElem%u_x = aElem%u_x + aSide%w(1) * pDiff
+    aElem%u_y = aElem%u_y + aSide%w(2) * pDiff
+    aElem => aSide%connection%Elem
+    aElem%u_x = aElem%u_x - aSide%connection%w(1) * pDiff
+    aElem%u_y = aElem%u_y - aSide%connection%w(2) * pDiff
+  END DO
 !-----------------------------------------------------------------------------------------------------------------------------------
   !$omp parallel do private(aElem,aSide,dx,dy)
 
   ! Limit gradient and reconstruct values at side GPs
   
   ! Do this element by element using a loop over all elements
-
-       ! Insert your Code here
+  DO iElem = 1, nElems
+    aElem => Elems(iElem)%Elem
     
+    CALL Limiter(aElem)
 
-
+    aSide => aElem%firstSide
+    DO WHILE(ASSOCIATED(aSide))
+      dx = aSide%GP(X_DIR)
+      dy = aSide%GP(Y_DIR)
+      aSide%pvar = aElem%pvar + dx*aElem%u_x(:) + dy*aElem%u_y(:)
+      ! Iterate
+      aSide => aSide%nextElemSide
+    END DO
+  END DO
   !$omp end parallel do
 END IF
 !-----------------------------------------------------------------------------------------------------------------------------------
