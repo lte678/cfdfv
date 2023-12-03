@@ -41,14 +41,14 @@ USE MOD_Mesh_Vars,ONLY:nElems,FirstElem
 USE MOD_Mesh_Vars,ONLY:strIniCondFile 
 USE MOD_TimeDisc_Vars,ONLY:t,Time_Overall
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-IMPLICIT NONE
-!-----------------------------------------------------------------------------------------------------------------------------------
 ! Include CGNS Library:
 ! (Please note that the CGNS library has to be installed in the computer's
 ! library and include path (see CGNS documentation for more information:
 ! www.cgns.org)
-INCLUDE 'cgnslib_f.h'
+USE cgns
+!-----------------------------------------------------------------------------------------------------------------------------------
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------

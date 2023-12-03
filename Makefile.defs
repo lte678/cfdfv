@@ -19,8 +19,8 @@ AR_FLAGS=cr
 # CGNS
 # #---------------------------------------------------------------------------------------------------------------------------------#
 # # Directly added in src/Makefile_PostProc
-CGNS_VERSION = 3.1.4
-CGNS_SUBVERSION = 2
+CGNS_VERSION = 4.4.0
+CGNS_SUBVERSION = 0
 
 
 #Set Compiler strings

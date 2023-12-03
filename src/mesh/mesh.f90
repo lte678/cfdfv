@@ -82,7 +82,7 @@ WRITE(*,*) "-[Mesh]-----------------------------------------------------"
 CALL ReadMesh()
 GridFile =  TRIM(strOutFile) // '_mesh.cgns'
 CALL CreateMesh()
-IF (iVisuProg == CGNS) THEN
+IF (iVisuProg == FORMAT_CGNS) THEN
   IF (.NOT.Restart) THEN
     ! Write CGNS Mesh file
     CALL CGNS_WriteMesh()

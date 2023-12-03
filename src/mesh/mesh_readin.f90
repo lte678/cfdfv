@@ -448,14 +448,14 @@ SUBROUTINE ReadCGNS(FileName, Vertices, nVertices, BCEdge, nBCEdges, Tria, nTria
 USE MOD_Mesh_Vars,ONLY: 
 USE MOD_Readin, ONLY: getFreeIOUnit, getCmdLine
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-IMPLICIT NONE
-!-----------------------------------------------------------------------------------------------------------------------------------
 ! Include CGNS Library:
 ! (Please note that the CGNS library has to be installed in the computer's
 ! library and include path (see CGNS documentation for more information:
 ! www.cgns.org)
-INCLUDE 'cgnslib_f.h'
+USE cgns
+!-----------------------------------------------------------------------------------------------------------------------------------
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
 CHARACTER(LEN=256):: FileName
@@ -528,7 +528,7 @@ CALL cg_elements_read_f(CGNSUnit,     &
                         ZoneIndex,    &
                         SectionIndex, &
                         Elems,        &
-                        NULL,         &
+                        CG_Null,      &
                         ierr          )
   IF (ierr .EQ. ERROR) CALL errorCGNS(ierr,'cg_elements_read_f')
 ! Extract triangles and quadrangles from mixed Elems array
@@ -600,7 +600,7 @@ CALL cg_elements_read_f(CGNSUnit,     &
                         ZoneIndex,    &
                         SectionIndex, &
                         Elems,        &
-                        NULL,         &
+                        CG_Null,      &
                         ierr          )
   IF (ierr .EQ. ERROR) CALL errorCGNS(ierr,'cg_elements_read_f')
 ! Read number of boundaries
@@ -682,14 +682,14 @@ USE MOD_Globals
 USE MOD_Mesh_Vars,ONLY:
 USE MOD_Readin, ONLY: getFreeIOUnit, getCmdLine
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-IMPLICIT NONE
-!-----------------------------------------------------------------------------------------------------------------------------------
 ! Include CGNS Library:
 ! (Please note that the CGNS library has to be installed in the computer's
 ! library and include path (see CGNS documentation for more information:
 ! www.cgns.org)
-INCLUDE 'cgnslib_f.h'
+USE cgns
+!-----------------------------------------------------------------------------------------------------------------------------------
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
 CHARACTER(LEN=256):: FileName
@@ -893,7 +893,7 @@ WRITE(*,*)'       number of Nodes  : ',nVerticesZone(ZoneIndex)
                           ZoneIndex,    &
                           SectionIndex, &
                           Elems,        &  ! connectivity array
-                          NULL,         &
+                          CG_Null,      &
                           ierr          )
     IF (ierr .EQ. ERROR) CALL errorCGNS(ierr,'cg_elements_read_f')
   ! write Element connectivity in Trias /Quads array
@@ -1036,14 +1036,14 @@ SUBROUTINE errorCGNS(ierr,routine)
 !===================================================================================================================================
 ! MODULES
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-  IMPLICIT NONE
+! Include CGNS Library:
+! (Please note that the CGNS library has to be installed in the computer's
+! library and include path (see CGNS documentation for more information:
+! www.cgns.org)
+USE cgns
 !-----------------------------------------------------------------------------------------------------------------------------------
-  ! Include CGNS Library:
-  ! (Please note that the CGNS library has to be installed in the computer's
-  ! library and include path (see CGNS documentation for more information:
-  ! www.cgns.org)
-  INCLUDE 'cgnslib_f.h'
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
 INTEGER            :: ierr 

@@ -110,13 +110,13 @@ ELSE
   FileName = TIMESTAMP(TRIM(strOutFile),time)
 END IF
 SELECT CASE(iVisuProg)
-CASE(CGNS)
+CASE(FORMAT_CGNS)
   FileName = TRIM(FileName) // '.cgns'
   CALL CGNSOutput(FileName, time, iter, .FALSE.)
-CASE(CURVE)
+CASE(FORMAT_CURVE)
   FileName = TRIM(FileName) // '.curve'
   CALL CurveOutput(FileName, time, iter, .FALSE.)
-CASE(DAT)
+CASE(FORMAT_DAT)
   FileName = TRIM(FileName) // '.csv'
   CALL CSVOutput(FileName, time, iter, .FALSE.)
 CASE DEFAULT
@@ -133,13 +133,13 @@ IF (ExactSolution) THEN
     FileName = TIMESTAMP(TRIM(strOutFile)//'_ex',time)
   END IF
   SELECT CASE(iVisuProg)
-  CASE(CGNS)
+  CASE(FORMAT_CGNS)
     FileName = TRIM(FileName) // '.cgns'
     CALL CGNSOutput(FileName, time, iter, .TRUE.)
-  CASE(CURVE)
+  CASE(FORMAT_CURVE)
     FileName = TRIM(FileName) // '.curve'
     CALL CurveOutput(FileName, time, iter, .TRUE.)
-  CASE(DAT)
+  CASE(FORMAT_DAT)
     FileName = TRIM(FileName) // '.csv'
     CALL CSVOutput(FileName, time, iter, .TRUE.)
   END SELECT
@@ -173,7 +173,7 @@ IMPLICIT NONE
 !===================================================================================================================================
 
 SELECT CASE(iVisuProg)
-CASE(CGNS)
+CASE(FORMAT_CGNS)
   CALL FinalizeCGNSOutput()
 END SELECT
 !-----------------------------------------------------------------------------------------------------------------------------------

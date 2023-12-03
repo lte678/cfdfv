@@ -4,15 +4,15 @@ MODULE MOD_Output_cgns
 !===================================================================================================================================
 ! MODULES
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-IMPLICIT NONE
-PRIVATE
-!-----------------------------------------------------------------------------------------------------------------------------------
 ! Include CGNS Library:
 ! (Please note that the CGNS library has to be installed in the computer's
 ! library and include path (see CGNS documentation for more information:
 ! www.cgns.org)
-INCLUDE 'cgnslib_f.h'
+USE cgns
+!-----------------------------------------------------------------------------------------------------------------------------------
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
+PRIVATE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! GLOBAL VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -129,6 +129,7 @@ ALLOCATE(v1_array(1:nElems))
 ALLOCATE(v2_array(1:nElems))
 ALLOCATE(v3_array(1:nElems))	! dummy_Array for compatibility with Paraview 5.6.1
 ALLOCATE(p_array(1:nElems))
+WRITE(*,*) "Got the following Base and Zone index: ", BaseIndex, ZoneIndex, SolutionIndex
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Save the solution in a CGNS-compatible format
 IF (ExactSolution) THEN
@@ -408,21 +409,21 @@ USE MOD_Mesh_Vars,      ONLY:tNode,tElem,tPureSidePtr
 USE MOD_Mesh_Vars,      ONLY:nBCSides,firstNode,firstElem,GridFile
 USE MOD_Mesh_Vars,      ONLY:FirstBCSide,nNodes,nElems,nTrias,nQuads
 !-----------------------------------------------------------------------------------------------------------------------------------
-! IMPLICIT VARIABLE HANDLING
-IMPLICIT NONE
-!-----------------------------------------------------------------------------------------------------------------------------------
 ! Include CGNS Library:
 ! (Please note that the CGNS library has to be installed in the computer's
 ! library and include path (see CGNS documentation for more information:
 ! www.cgns.org)
-INCLUDE 'cgnslib_f.h'
+USE cgns
+!-----------------------------------------------------------------------------------------------------------------------------------
+! IMPLICIT VARIABLE HANDLING
+IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! LOCAL VARIABLES 
-INTEGER                     :: ierr, nCount, iNode
+INTEGER                     :: ierr, nCount, triCount, quadCount, iNode
 INTEGER                     :: isize(1,3)
 INTEGER                     :: CGNSUnit
 INTEGER                     :: BaseIndex
@@ -431,10 +432,11 @@ INTEGER                     :: GridIndex
 INTEGER                     :: BoundaryIndex
 INTEGER                     :: CoordinateIndex
 INTEGER                     :: SectionIndex
-INTEGER, POINTER            :: Elems(:), bElems(:)
+INTEGER, DIMENSION(:,:), POINTER    :: triElems, quadElems
+INTEGER, POINTER            :: bElems(:)
 
 REAL, POINTER               :: Nodes(:,:)
-INTEGER                     :: allocStat, ElemIntSize, n
+INTEGER                     :: allocStat, n
 INTEGER                     :: BCPartition(nBC+1), nSide, iBC, ipnts(nBCSides)
 
 TYPE(tNode), POINTER        :: aNode
@@ -451,11 +453,10 @@ isize(1,2) = nElems
 isize(1,3) = 0
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Determine the size of the element array and allocate it
-ElemIntSize = nTrias * 4 + nQuads * 5
-ALLOCATE(Elems(1:ElemIntSize), STAT = allocStat)
+ALLOCATE(triElems(3,1:nTrias), STAT = allocStat)
+ALLOCATE(quadElems(4,1:nQuads), STAT = allocStat)
 ALLOCATE(Nodes(1:nNodes, 3), STAT = allocStat)
-ElemIntSize = nBCSides * 3
-ALLOCATE(bElems(1:ElemIntSize), STAT = allocStat)
+ALLOCATE(bElems(1:(nBCSides * 3)), STAT = allocStat)
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Save vertices in a CGNS compatible format
 iNode=1
@@ -468,19 +469,21 @@ DO WHILE(ASSOCIATED(aNode))
 END DO
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Save element connectivity in a CGNS compatible format
-nCount = 1
+triCount = 1
+quadCount = 1
 aElem => FirstElem
 DO WHILE (ASSOCIATED(aElem))
   IF (aElem%ElemType == 3) THEN
-    Elems(nCount) = TRI_3
+    DO iNode = 1, aElem%ElemType
+      triElems(iNode,triCount) = aElem%NodeArray(iNode)%Node%ID
+      triCount = nCount + 1
+    END DO
   ELSEIF (aElem%ElemType == 4) THEN
-    Elems(nCount) = QUAD_4
+    DO iNode = 1, aElem%ElemType
+      quadElems(iNode,quadCount) = aElem%NodeArray(iNode)%Node%ID
+      quadCount = nCount + 1
+    END DO
   END IF
-  nCount = nCount + 1
-  DO iNode = 1, aElem%ElemType
-    Elems(nCount) = aElem%NodeArray(iNode)%Node%ID
-    nCount = nCount + 1
-  END DO
   aElem => aElem%nextElem
 END DO
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -514,6 +517,7 @@ CALL cg_open_f(TRIM(GridFile),           &
                MODE_WRITE,               &
                CGNSUnit,                 &
                ierr                      )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_open_f') 
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write coordinate base to CGNS file
 CALL cg_base_write_f(CGNSUnit,  &
@@ -522,6 +526,7 @@ CALL cg_base_write_f(CGNSUnit,  &
                      3,         &
                      BaseIndex, &
                      ierr       )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_base_write_f')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the computational zone to the CGNS file
 CALL cg_zone_write_f(CGNSUnit,     &
@@ -531,12 +536,14 @@ CALL cg_zone_write_f(CGNSUnit,     &
                      Unstructured, &
                      ZoneIndex,    &
                      ierr          )
+  CALL CheckCgnsError(ierr, '')
 call cg_grid_write_f(CGNSUnit,          &
                      BaseIndex,         &
                      ZoneIndex,         &
                      'GridCoordinates', &
                      GridIndex,         &
                      ierr               )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_grid_write_f')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the vertices' x-coordinates to the file
 CALL cg_coord_write_f(CGNSUnit,              &
@@ -547,6 +554,7 @@ CALL cg_coord_write_f(CGNSUnit,              &
                       Nodes(: ,X_DIR),       &
                       CoordinateIndex,       &
                       ierr                   )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_coord_write_f (x)')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the vertices' y-coordinates to the file
 CALL cg_coord_write_f(CGNSUnit,              &
@@ -557,6 +565,7 @@ CALL cg_coord_write_f(CGNSUnit,              &
                       Nodes(: ,Y_DIR),       &
                       CoordinateIndex,       &
                       ierr                   )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_coord_write_f (y)')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the vertices' z-coordinates to the file -> dummy Points
 CALL cg_coord_write_f(CGNSUnit,              &
@@ -567,19 +576,37 @@ CALL cg_coord_write_f(CGNSUnit,              &
                       Nodes(: ,3),			 &
                       CoordinateIndex,       &
                       ierr                   )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_coord_write_f (z)')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the element connectivity to the CGNS file
-CALL cg_section_write_f(CGNSUnit,     &
+  IF(nTrias.NE.0) THEN
+    CALL cg_section_write_f(CGNSUnit,     &
                         BaseIndex,    &
                         ZoneIndex,    &
                         'Elements',   &
-                        MIXED,        &
+                        TRI_3,        &
                         1,            &
-                        nElems,       &
+                        nTrias,       &
                         0,            &
-                        Elems,        &
+                        triElems,     &
                         SectionIndex, &
                         ierr          )
+    CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_section_write_f (Elements)')
+  ENDIF
+  IF(nQuads.NE.0) THEN
+    CALL cg_section_write_f(CGNSUnit,   &
+                          BaseIndex,    &
+                          ZoneIndex,    &
+                          'Elements',   &
+                          QUAD_4,       &
+                          1,            &
+                          nQuads,       &
+                          0,            &
+                          quadElems,    &
+                          SectionIndex, &
+                          ierr          )
+    CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_section_write_f (Elements)')
+  ENDIF
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the boundary connectivity to the CGNS file
 IF (.NOT.isPeriodic) THEN
@@ -594,6 +621,7 @@ IF (.NOT.isPeriodic) THEN
                           bElems,                      &
                           SectionIndex,                &
                           ierr                         )
+  CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_section_write_f (Boundaries)')
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! Write the boundary connectivity to the CGNS file
   iBC = 1
@@ -615,14 +643,16 @@ IF (.NOT.isPeriodic) THEN
                          ipnts,          &
                          BoundaryIndex,  &
                          ierr            )
+    CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_boco_write_f')
     aBC => aBC%nextBC
     iBC = iBC+1
   END DO
 END IF
 ! Close CGNS file
 CALL cg_close_f(CGNSUnit, ierr)
+CALL CheckCgnsError(ierr, 'CGNS_WriteMesh:cg_close_f')
 ! Deallocate temporary arrays
-DEALLOCATE(Elems, Nodes, STAT = allocStat)
+DEALLOCATE(triElems, quadElems, Nodes, STAT = allocStat)
 !-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE CGNS_WriteMesh
 
@@ -653,5 +683,28 @@ END DO
 TimeStamp=TRIM(Filename)//'_'//TRIM(TimeStamp)
 !-----------------------------------------------------------------------------------------------------------------------------------
 END FUNCTION TIMESTAMP
+
+SUBROUTINE CheckCgnsError(ierr, message)
+  !===================================================================================================================================
+  ! Checks a CGNS ierr code, and aborts if non-zero
+  !===================================================================================================================================
+  ! MODULES
+  ! IMPLICIT VARIABLE HANDLING
+  IMPLICIT NONE
+  !-----------------------------------------------------------------------------------------------------------------------------------
+  ! INPUT VARIABLES
+  INTEGER,INTENT(IN)                   :: ierr     ! Error code
+  CHARACTER(LEN=*),INTENT(IN),OPTIONAL :: message  ! Optional error message
+  !===================================================================================================================================
+  IF(ierr.NE.0) THEN
+    IF(PRESENT(message)) THEN
+      WRITE(*,*) "Error preforming CGNS operation: ", message
+    ELSE
+      WRITE(*,*) "Error preforming CGNS operation."
+    END IF
+    CALL cg_error_print_f()
+    CALL EXIT(1)
+  END IF
+END SUBROUTINE CheckCgnsError
 
 END MODULE MOD_Output_cgns
