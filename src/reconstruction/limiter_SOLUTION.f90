@@ -42,7 +42,7 @@ TYPE(tElem), POINTER    :: aElem
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
-! LOCAL VARIABLES 
+! LOCAL VARIABLES
 !===================================================================================================================================
 
 ! Determine uMax and uMin
@@ -77,7 +77,7 @@ TYPE(tElem), POINTER    :: aElem
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
-! LOCAL VARIABLES 
+! LOCAL VARIABLES
 REAL                    :: phi(NVAR), phiLoc(NVAR)
 REAL                    :: uMax(NVAR), uMin(NVAR)
 REAL                    :: MaxDiff(NVAR), MinDiff(NVAR), uDiff(NVAR)
@@ -86,10 +86,46 @@ INTEGER                 :: iVar
 TYPE(tSide), POINTER    :: aSide
 !===================================================================================================================================
 
-! this routine computes the limited gradients aElem%u_x and aElem%u_y
-
-        ! Insert your Code here
-        
+! Determine uMax and uMin
+uMax = aElem%pvar
+uMin = aElem%pvar
+! Loop over all Sides
+aSide => aElem%firstside
+DO WHILE (ASSOCIATED(aSide))
+!-----------------------------------------------------------------------------------------------------------------------------------
+  uMax(:) = MAX(uMax, aSide%connection%elem%pvar)
+  uMin(:) = MIN(uMin, aSide%connection%elem%pvar)
+  aSide => aSide%nextElemSide
+END DO
+!-----------------------------------------------------------------------------------------------------------------------------------
+maxDiff(:) = uMax(:) - aElem%pvar(:)
+minDiff(:) = uMin(:) - aElem%pvar(:)
+maxDiff_sq(:) = maxDiff(:) * maxDiff(:)
+minDiff_sq(:) = minDiff(:) * minDiff(:)
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Loop over all Edges: Determine phi
+phi(:) = 1.
+aSide => aElem%firstside
+DO WHILE (ASSOCIATED(aSide))
+  phiLoc(:) = 1.
+  DO iVar = 1, NVAR
+    uDiff(iVar) = aElem%u_x(iVar) * aSide%GP(X_DIR) + &
+                  aElem%u_y(iVar) * aSide%GP(Y_DIR)
+    uDiff_sq(iVar) = uDiff(iVar) * uDiff(iVar)
+    IF (uDiff(iVar) > 0.) THEN
+      phiLoc(iVar) = MIN(1., maxDiff(iVar) / uDiff(iVar))
+    ELSEIF (uDiff(iVar) < 0.) THEN
+      phiLoc(iVar) = MIN(1., minDiff(iVar) / uDiff(iVar))
+    END IF
+  END DO
+  phi = MIN(phi, phiLoc)
+  aSide => aSide%nextElemSide
+END DO
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Compute limited Gradients
+aElem%u_x = aElem%u_x * phi
+aElem%u_y = aElem%u_y * phi
+!-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE Limiter_BarthJespersen
 
 
@@ -109,7 +145,7 @@ TYPE(tElem), POINTER    :: aElem
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 !-----------------------------------------------------------------------------------------------------------------------------------
-! LOCAL VARIABLES 
+! LOCAL VARIABLES
 REAL                    :: phi(NVAR), phiLoc(NVAR)
 REAL                    :: uMax(NVAR), uMin(NVAR)
 REAL                    :: MaxDiff(NVAR), MinDiff(NVAR), uDiff(NVAR)
@@ -118,12 +154,54 @@ INTEGER                 :: iVar
 TYPE(tSide), POINTER    :: aSide
 !===================================================================================================================================
 
-! this routine computes the limited gradients aElem%u_x and aElem%u_y
-
-    ! variables with reqired data:
-    ! epsilon^2: aElem%venk_epsilon_sq
-
-        ! Insert your Code here
+! Determine uMax and uMin
+uMax = aElem%pvar
+uMin = aElem%pvar
+! Loop over all Sides
+aSide => aElem%firstside
+DO WHILE (ASSOCIATED(aSide))
+!-----------------------------------------------------------------------------------------------------------------------------------
+  uMax(:) = MAX(uMax, aSide%connection%elem%pvar)
+  uMin(:) = MIN(uMin, aSide%connection%elem%pvar)
+  aSide => aSide%nextElemSide
+END DO
+!-----------------------------------------------------------------------------------------------------------------------------------
+maxDiff = uMax - aElem%pvar
+DO iVar = 1, NVAR
+  minDiff(iVar) = uMin(iVar) - aElem%pvar(iVar)
+  minDiff(iVar) = SIGN(1.,minDiff(iVar)) * (ABS(minDiff(iVar)) + EPSILON(0.))
+END DO
+maxDiff_sq = maxDiff * maxDiff
+minDiff_sq = minDiff * minDiff
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Loop over all Edges: Determine phi
+phi = 1.
+aSide => aElem%firstside
+DO WHILE (ASSOCIATED(aSide))
+  phiLoc = 1.
+  DO iVar = 1, NVAR
+    uDiff(iVar) = aElem%u_x(iVar) * aSide%GP(X_DIR) + &
+                  aElem%u_y(iVar) * aSide%GP(Y_DIR)
+    uDiff_sq(iVar) = uDiff(iVar) * uDiff(iVar)
+    IF (uDiff(iVar) > 0.) THEN
+      phiLoc(iVar) = 1. / uDiff(iVar) * (((maxDiff_sq(iVar) + aElem%venk_epsilon_sq) * uDiff(iVar) + &
+                                          2. * uDiff_sq(iVar) * maxDiff(iVar))                     / &
+                                         (maxDiff_sq(iVar) + 2. * uDiff_sq(iVar) + uDiff(iVar)     * &
+                                          maxDiff(iVar) + aElem%venk_epsilon_sq))
+    ELSEIF (uDiff(iVar) < 0.) THEN
+      phiLoc(iVar) = 1. / uDiff(iVar) * (((minDiff_sq(iVar) + aElem%venk_epsilon_sq) * uDiff(iVar) + &
+                                          2. * uDiff_sq(iVar) * minDiff(iVar))                     / &
+                                         (minDiff_sq(iVar) + 2. * uDiff_sq(iVar) + uDiff(iVar)     * &
+                                          minDiff(iVar) + aElem%venk_epsilon_sq))
+    END IF
+  END DO
+  phi = MIN(phi, phiLoc)
+  aSide => aSide%nextElemSide
+END DO
+!-----------------------------------------------------------------------------------------------------------------------------------
+! Compute limited Gradients
+aElem%u_x = aElem%u_x * phi
+aElem%u_y = aElem%u_y * phi
 !-----------------------------------------------------------------------------------------------------------------------------------
 END SUBROUTINE Limiter_Venkatakrishnan
 
